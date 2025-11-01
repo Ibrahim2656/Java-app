@@ -1,0 +1,57 @@
+node {
+
+    // Define tools
+    def jdkHome = tool name: 'jdk21', type: 'jdk'
+    def mavenHome = tool name: 'Maven-3.9.11', type: 'maven'
+    env.PATH = "${jdkHome}/bin:${mavenHome}/bin:${env.PATH}"
+
+    // Environment variables
+    def IMAGE_NAME = "ibrahim2656/java-app-scripted"
+
+    try {
+        stage('Checkout') {
+            echo "🔄 Checking out code..."
+            git branch: 'main', url: 'https://g...content-available-to-author-only...b.com/Ibrahim2656/Java-app'
+        }
+
+        stage('Build') {
+            echo "🏗️ Building the Java application..."
+            sh "${mavenHome}/bin/mvn clean package"
+        }
+
+        stage('Test') {
+            echo "🧪 Running tests..."
+            sh "${mavenHome}/bin/mvn test"
+        }
+
+        stage('Docker Build') {
+            echo "🐳 Building Docker image..."
+            sh "docker build -t ${IMAGE_NAME}:${env.BUILD_NUMBER} ."
+        }
+
+        stage('Docker Login') {
+            echo "🔐 Logging into DockerHub..."
+            withCredentials([string(credentialsId: 'dockerhub-pass', variable: 'DOCKERHUB_PASS')]) {
+                sh "echo $DOCKERHUB_PASS | docker login -u ibrahim2656 --password-stdin"
+            }
+        }
+
+        stage('Docker Push') {
+            echo "📤 Pushing Docker image..."
+            sh """
+                docker push ${IMAGE_NAME}:${env.BUILD_NUMBER}
+                docker tag ${IMAGE_NAME}:${env.BUILD_NUMBER} ${IMAGE_NAME}:latest
+                docker push ${IMAGE_NAME}:latest
+            """
+        }
+
+        echo "✅ Build and push completed successfully!"
+
+    } catch (err) {
+        echo "❌ Build failed!"
+        throw err
+    } finally {
+        echo "🧹 Cleaning up..."
+        sh 'docker logout'
+    }
+}
