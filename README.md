@@ -22,7 +22,7 @@ To get started, follow these steps:
 1. **Clone the repository**:
 
     ```shell
-    git clone https://github.com/Hassan-Eid-Hassan/java.git
+    git clone https://github.com/Ibrahim2656/Java-app
     cd your-repo
     ```
 

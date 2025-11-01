@@ -1,0 +1,77 @@
+pipeline {
+    agent any
+
+    tools {
+        jdk 'jdk21'
+        maven 'Maven-3.9.11'
+    }
+
+    environment {
+        IMAGE_NAME = "ibrahim2656/java-app"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://g...content-available-to-author-only...b.com/Ibrahim2656/Java-app'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo "🏗️ Building the Java application..."
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo "🧪 Running tests..."
+                sh 'mvn test'
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                echo "🐳 Building Docker image..."
+                sh 'docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .'
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                echo "🔐 Logging into DockerHub..."
+                withCredentials([string(credentialsId: 'dockerhub-pass', variable: 'DOCKERHUB_PASS')]) {
+                    sh '''
+                        echo "$DOCKERHUB_PASS" | docker login -u ibrahim2656 --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                echo "📤 Pushing Docker image to DockerHub..."
+                sh '''
+                    docker push ${IMAGE_NAME}:${BUILD_NUMBER}
+                    docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${IMAGE_NAME}:latest
+                    docker push ${IMAGE_NAME}:latest
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "🧹 Cleaning up..."
+            sh 'docker logout'
+        }
+        success {
+            echo "✅ Build and push completed successfully!"
+        }
+        failure {
+            echo "❌ Build failed!"
+        }
+    }
+}
